@@ -1,29 +1,73 @@
+const {Markup } = require('telegraf');
+const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
-const { Telegraf, Markup } = require('telegraf');
+const cors = require('cors');
 
-const app = express();
 const token = '7461522699:AAE5E5APgIdzh7xO5X1-lMXWXN-PFoZGC-s';
+const webAppUrl = 'https://delicate-youtiao-f100b5.netlify.app/';
 
-const bot = new Telegraf(token);
-bot.command('start', (ctx) => {
-    const helpMessage = `
-    *What can this bot do?*
+const bot = new TelegramBot(token, {polling: true});
+const app = express();
 
-    1. *Browse the Catalog*: View available products with details and images.
-    2. *Add to Cart*: Add items to your cart with specified quantities.
-    3. *Review Orders*: Modify or remove items before checkout.
-    4. *Checkout Process*: Enter personal information and delivery details.
-    5. *Personal Data Management*: Update or delete your personal data.
-    6. *Order Status Tracking*: Track your order status in real-time.
-    7. *Customer Support*: Get automated responses or escalate to human support.
-    `;
+app.use(express.json());
+app.use(cors());
 
-    const webLaunchButton = Markup.inlineKeyboard([
-        Markup.button.url('Visit Our Shop', 't.me/EasyPostavshik_bot/myVKAPP')
-    ]);
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text;
 
-    ctx.replyWithMarkdown(helpMessage, webLaunchButton);
+    if(text === '/start') {
+        await bot.sendMessage(chatId, 'Ниже появится кнопка, заполни форму/ Here', {
+            reply_markup: {
+                keyboard: [
+                    [{text: 'Заполнить форму', web_app: {url: webAppUrl + '/form'}}]
+                ]
+            }
+        })
+
+        await bot.sendMessage(chatId, 'Заходи в наш интернет магазин по кнопке ниже', {
+            reply_markup: {
+                inline_keyboard: [
+                    [{text: 'Сделать заказ', web_app: {url: webAppUrl}}]
+                ]
+            }
+        })
+    }
+
+    if(msg?.web_app_data?.data) {
+        try {
+            const data = JSON.parse(msg?.web_app_data?.data)
+            console.log(data)
+            await bot.sendMessage(chatId, 'Спасибо за обратную связь!')
+            await bot.sendMessage(chatId, 'Ваша страна: ' + data?.country);
+            await bot.sendMessage(chatId, 'Ваша улица: ' + data?.street);
+
+            setTimeout(async () => {
+                await bot.sendMessage(chatId, 'Всю информацию вы получите в этом чате');
+            }, 3000)
+        } catch (e) {
+            console.log(e);
+        }
+    }
 });
 
+app.post('/web-data', async (req, res) => {
+    const {queryId, products = [], totalPrice} = req.body;
+    try {
+        await bot.answerWebAppQuery(queryId, {
+            type: 'article',
+            id: queryId,
+            title: 'Успешная покупка',
+            input_message_content: {
+                message_text: ` Поздравляю с покупкой, вы приобрели товар на сумму ${totalPrice}, ${products.map(item => item.title).join(', ')}`
+            }
+        })
+        return res.status(200).json({});
+    } catch (e) {
+        return res.status(500).json({})
+    }
+})
 
-bot.launch();
+const PORT = 8000;
+
+app.listen(PORT, () => console.log('server started on PORT ' + PORT))
