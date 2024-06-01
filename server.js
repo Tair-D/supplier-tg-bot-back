@@ -51,6 +51,10 @@ bot.on('message', async (msg) => {
     }
 });
 
+app.get('/',(req,res)=>{
+    console.log("it is test route");
+})
+
 app.post('/web-data', async (req, res) => {
     const {queryId, products = [], totalPrice} = req.body;
     try {
