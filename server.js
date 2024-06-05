@@ -50,23 +50,37 @@ bot.on('message', async (msg) => {
     }
 });
 
-app.get('/',(req,res)=>{
-    console.log("it is test route");
-})
-
 app.post('/web-data', async (req, res) => {
-    const {queryId, products = [], totalPrice} = req.body;
+    const {queryId, products = [], totalPrice,address,receiverName, shopName, phoneNumber} = req.body;
     try {
         await bot.answerWebAppQuery(queryId, {
             type: 'article',
             id: queryId,
-            title: 'Успешная покупка',
+            title: 'Заказ оформлен',
             input_message_content: {
-                message_text: `Поздравляю с покупкой, вы приобрели товар на сумму ${totalPrice}, ${products.map(item => item.title).join(', ')}`
+                message_text: `Ваш заказ успешно оформлен! 🎉\n
+
+                                Сумма заказа: ${totalPrice} ₸\n
+                                
+                                Ваш заказ будет доставлен по адресу: ${address}\n
+                                
+                                Для обратной связи мы свяжемся с вами по указанному вами контактному телефону: ${phoneNumber} \n
+                                
+                                Имя и фамилия получателя: ${receiverName}\n
+                                
+                                Спасибо за покупку! Если у вас возникнут вопросы, обращайтесь к нам.`
             }
         });
         return res.status(200).json({});
     } catch (e) {
+        await bot.answerWebAppQuery(queryId, {
+            type: 'article',
+            id: queryId,
+            title: 'Ошибка',
+            input_message_content: {
+                message_text: `Произошла Ошибка`
+            }
+        });
         return res.status(500).json({});
     }
 });
