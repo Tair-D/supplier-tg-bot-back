@@ -52,7 +52,7 @@ bot.on('message', async (msg) => {
 
 app.post('/web-data', async (req, res) => {
 	const {queryId, products = [], totalPrice, address, receiverName, shopName, phoneNumber} = req.body;
-	const productList = products.map(product => `- ${product?.title}: ${product?.quantity} шт`).join('\n');
+	const productList = products.map(product => `- ${product?.title}: ${product?.quantity} шт - ${product.price} ₸`).join('\n');
 
 	try {
 		await bot.answerWebAppQuery(queryId, {
