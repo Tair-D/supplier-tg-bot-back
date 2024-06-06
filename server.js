@@ -1,6 +1,8 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const cors = require('cors');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
 
 const token = process.env.TELEGRAM_BOT_TOKEN || '7461522699:AAE5E5APgIdzh7xO5X1-lMXWXN-PFoZGC-s';
 const webAppUrl = 'https://delicate-youtiao-f100b5.netlify.app/';
@@ -50,11 +52,54 @@ bot.on('message', async (msg) => {
 	}
 });
 
+// Function to generate PDF receipt
+const generatePDFReceipt = (queryId, shopName, receiverName, phoneNumber, address, products, totalPrice) => {
+	return new Promise((resolve, reject) => {
+		const doc = new PDFDocument();
+		const filePath = `receipts/${queryId}.pdf`;
+
+		doc.pipe(fs.createWriteStream(filePath))
+			.on('finish', () => resolve(filePath))
+			.on('error', reject);
+
+		doc.fontSize(20).text('Receipt/Invoice', {align: 'center'});
+		doc.moveDown();
+		doc.fontSize(12).text(`Shop Name: ${shopName}`);
+		doc.text(`Receiver Name: ${receiverName}`);
+		doc.text(`Phone Number: ${phoneNumber}`);
+		doc.text(`Address: ${address}`);
+		doc.moveDown();
+		doc.text('Products:');
+		products.forEach(product => {
+			doc.text(`- ${product.title}: ${product.quantity} шт - ${product.price} ₸`);
+		});
+		doc.moveDown();
+		doc.fontSize(14).text(`Total Price: ${totalPrice} ₸`, {align: 'right'});
+		doc.end();
+	});
+};
+
+// Function to send PDF via Telegram bot
+const sendPDFToTelegram = async (filePath) => {
+	const url = `https://api.telegram.org/bot${bot.token}/sendDocument`;
+	const form = new FormData();
+	// form.append('chat_id', chatId);
+	form.append('document', fs.createReadStream(filePath));
+
+	const response = await fetch(url, {method: 'POST', body: form});
+	return response.json();
+};
+
+
 app.post('/web-data', async (req, res) => {
 	const {queryId, products = [], totalPrice, address, receiverName, shopName, phoneNumber} = req.body;
 	const productList = products.map(product => `- ${product?.title}: ${product?.quantity} шт - ${product?.price} ₸`).join('\n');
+	// const chatId = req.body.chatId; // Make sure you have the chatId
 
 	try {
+		const filePath = await generatePDFReceipt(queryId, shopName, receiverName, phoneNumber, address, products, totalPrice);
+		await sendPDFToTelegram(filePath);
+
 		await bot.answerWebAppQuery(queryId, {
 			type: 'article',
 			id: queryId,
@@ -69,7 +114,8 @@ app.post('/web-data', async (req, res) => {
 					`Спасибо за покупку! Если у вас возникнут вопросы, обращайтесь к нам.`
 			}
 		});
-		return res.status(200).json({});
+
+		return res.status(200).json({filePath});
 	} catch (e) {
 		await bot.answerWebAppQuery(queryId, {
 			type: 'article',
