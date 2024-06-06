@@ -52,6 +52,8 @@ bot.on('message', async (msg) => {
 
 app.post('/web-data', async (req, res) => {
 	const {queryId, products = [], totalPrice, address, receiverName, shopName, phoneNumber} = req.body;
+	const productList = products.map(product => `- ${product?.title}: ${product?.quantity} шт`).join('\n');
+
 	try {
 		await bot.answerWebAppQuery(queryId, {
 			type: 'article',
@@ -60,6 +62,7 @@ app.post('/web-data', async (req, res) => {
 			input_message_content: {
 				message_text: 'Ваш заказ успешно оформлен! 🎉\n' +
 					'\n' + `Сумма заказа: ${totalPrice} ₸\n` +
+					`Список товаров: ${productList}\n` +
 					`Название магазина: ${shopName}\n` +
 					`Ваш заказ будет доставлен по адресу: ${address}\n` + `Контактный телефон: ${phoneNumber} \n` +
 					`Имя и фамилия получателя: ${receiverName}\n\n` +
