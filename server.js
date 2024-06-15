@@ -97,8 +97,8 @@ app.post('/web-data', async (req, res) => {
 	// const chatId = req.body.chatId; // Make sure you have the chatId
 
 	try {
-		const filePath = await generatePDFReceipt(queryId, shopName, receiverName, phoneNumber, address, products, totalPrice);
-		await sendPDFToTelegram(filePath);
+		// const filePath = await generatePDFReceipt(queryId, shopName, receiverName, phoneNumber, address, products, totalPrice);
+		// await sendPDFToTelegram(filePath);
 
 		await bot.answerWebAppQuery(queryId, {
 			type: 'article',
@@ -115,7 +115,7 @@ app.post('/web-data', async (req, res) => {
 			}
 		});
 
-		return res.status(200).json({filePath});
+		return res.status(200).json({});
 	} catch (e) {
 		await bot.answerWebAppQuery(queryId, {
 			type: 'article',
